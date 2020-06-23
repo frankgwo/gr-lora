@@ -35,6 +35,11 @@
 
 #include "dbugr.hpp"
 
+#include <chrono>
+#include <ctime>
+#include <time.h>
+
+
 namespace gr {
     namespace lora {
 
@@ -792,6 +797,11 @@ namespace gr {
                         samples_to_file("/tmp/sync", input, d_samples_per_symbol, sizeof(gr_complex));
 
                         d_state = gr::lora::DecoderState::PAUSE;
+                       
+                        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+                        auto micros = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+                        std::cout << "SFD founded Timestamp: " << micros << '\n';
+                        
                     } else {
                         if(c < -0.97f) {
                             fine_sync(input, d_number_of_bins-1, d_decim_factor * 4);
