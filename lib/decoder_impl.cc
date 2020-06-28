@@ -46,7 +46,6 @@
 #include <iostream>
 #include <thread>
 
-namespace po = boost::programe_options;
 
 namespace gr {
     namespace lora {
