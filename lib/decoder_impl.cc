@@ -38,11 +38,20 @@
 #include <chrono>
 #include <ctime>
 #include <time.h>
+#include <uhd/usrp/multi_usrp.hpp>
+#include <uhd/utils/safe_main.hpp>
+#include <uhd/utils/thread.hpp>
+#include <boost/format.hpp>
+#include <boost/program_options.hpp>
+#include <iostream>
+#include <thread>
 
+namespace po = boost::programe_options;
 
 namespace gr {
     namespace lora {
-
+        
+        
         decoder::sptr decoder::make(float samp_rate, uint32_t bandwidth, uint8_t sf, bool implicit, uint8_t cr, bool crc, bool reduced_rate, bool disable_drift_correction) {
             return gnuradio::get_initial_sptr
                    (new decoder_impl(samp_rate, bandwidth, sf, implicit, cr, crc, reduced_rate, disable_drift_correction));
@@ -742,7 +751,17 @@ namespace gr {
                                gr_vector_void_star&       output_items) {
             (void) noutput_items;
             (void) output_items;
-
+            
+            
+            
+            // Create a USRP device
+            std::string args;
+            std::cout << boost::format("\nCreating the USRP device with: %s...\n") % args;
+            uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(args);
+            std::cout << boost::format("Using Device: %s\n") % usrp->get_pp_string();
+            
+            
+            
             const gr_complex *input     = (gr_complex *) input_items[0];
             //const gr_complex *raw_input = (gr_complex *) input_items[1]; // Input bypassed by low pass filter
 
@@ -797,10 +816,17 @@ namespace gr {
                         samples_to_file("/tmp/sync", input, d_samples_per_symbol, sizeof(gr_complex));
 
                         d_state = gr::lora::DecoderState::PAUSE;
-                       
+                        
+                        uhd::time_spec_t time_now = usrp->get_time_now(0);
+                        std::cout << "USRP time: "
+                                  << (boost::format("%0.9f") % time_now.get_real_secs())
+                                  << std::endl;
+                        
                         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
                         auto micros = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
                         std::cout << "SFD founded Timestamp: " << micros << '\n';
+                        
+                        
                         
                     } else {
                         if(c < -0.97f) {
